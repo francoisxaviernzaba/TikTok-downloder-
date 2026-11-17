@@ -7,12 +7,24 @@
 
 import type { Resolver } from './types.ts';
 import { isUsableTikTokData } from './types.ts';
+import { directResolver } from './direct.ts';
+import { tiktokdlResolver } from './tiktokdl.ts';
 import { tikwmResolver } from './tikwm.ts';
 import { tiklyResolver } from './tikly.ts';
 import { lovetikResolver } from './lovetik.ts';
-import { directResolver } from './direct.ts';
+import { parseGenericProviders } from './generic.ts';
 
-const ALL_RESOLVERS: Resolver[] = [directResolver, tikwmResolver, tiklyResolver, lovetikResolver];
+// Env-driven providers (RESOLVER_GENERIC JSON array) appended to the chain.
+const GENERIC_PROVIDERS = parseGenericProviders(process.env.RESOLVER_GENERIC);
+
+const ALL_RESOLVERS: Resolver[] = [
+  directResolver,
+  tiktokdlResolver,
+  tikwmResolver,
+  tiklyResolver,
+  lovetikResolver,
+  ...GENERIC_PROVIDERS,
+];
 
 function getEnabledResolvers(): Resolver[] {
   const envResolvers = process.env.RESOLVERS?.trim();

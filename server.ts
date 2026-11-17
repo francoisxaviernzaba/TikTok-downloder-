@@ -173,7 +173,19 @@ app.get('/api/download', async (req: Request, res: ExpressResponse) => {
       else if (ct.includes('ogg')) filename = filename.replace(/\.[^.]+$/, '.ogg');
     }
 
-    res.setHeader('Content-Type', upstream.headers.get('content-type') || getContentType(kind));
+    // Some providers return application/octet-stream; force the correct type so inline <video> plays.
+    const upstreamCt = upstream.headers.get('content-type') || '';
+    const fallbackCt = getContentType(kind);
+    let contentType = fallbackCt;
+    if (kind === 'video' || kind === 'hd') {
+      if (upstreamCt.startsWith('video/')) contentType = upstreamCt;
+    } else if (kind === 'music') {
+      if (upstreamCt.startsWith('audio/')) contentType = upstreamCt;
+    } else if (kind === 'cover' || kind === 'image') {
+      if (upstreamCt.startsWith('image/')) contentType = upstreamCt;
+    }
+
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Accept-Ranges', 'bytes');
 
     const contentLength = upstream.headers.get('content-length');

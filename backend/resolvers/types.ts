@@ -168,8 +168,15 @@ export function isAllowedMediaHost(url: string): boolean {
       'akamaized.net',
       'bytecdn.cn',
       'tiktok.com',
+      // Provider hosts (env-driven resolvers may return their own media URLs)
+      'tiktokdownload.online',
     ];
-    return allowedHosts.some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
+    // Extra hosts supplied by the operator for custom providers
+    const extra = (process.env.ALLOWED_MEDIA_HOSTS || '')
+      .split(',')
+      .map((s) => s.trim().toLowerCase())
+      .filter(Boolean);
+    return [...allowedHosts, ...extra].some((allowed) => host === allowed || host.endsWith(`.${allowed}`));
   } catch {
     return false;
   }
