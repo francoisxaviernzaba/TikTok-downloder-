@@ -38,6 +38,8 @@ export interface TikTokVideoData {
   downloads: TikTokDownloads;
   images: string[];
   isVideo: boolean;
+  sourceUrl?: string; // Canonical TikTok URL for re-resolution on expired CDN links
+  cookies?: string; // TikTok session cookies captured during page scrape (needed by some CDN URLs)
 }
 
 export interface HistoryItem {
@@ -46,7 +48,8 @@ export interface HistoryItem {
   authorName: string;
   authorHandle: string;
   cover: string;
-  downloadUrl: string;
+  downloadUrl: string; // Legacy: direct CDN URL (expires), kept for backward compat
+  sourceUrl: string; // Canonical TikTok URL for re-resolution
   timestamp: number;
   isVideo: boolean;
 }

@@ -234,9 +234,9 @@ export const BatchDownloader: React.FC<BatchDownloaderProps> = ({ onSaveToHistor
                         Preview
                       </button>
                       <a
-                        href={`/api/download?url=${encodeURIComponent(
-                          item.data.downloads.nowm
-                        )}&filename=tiktok_${item.data.id}_nowm.mp4`}
+                        href={`/api/download?src=${encodeURIComponent(
+                          item.data.sourceUrl || `https://www.tiktok.com/@${item.data.author.unique_id}/video/${item.data.id}`
+                        )}&kind=video&filename=tiktok_${item.data.id}_nowm.mp4`}
                         download
                         className="px-2.5 py-1.5 text-[11px] bg-rose-500 hover:bg-rose-600 text-white font-medium rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
                       >

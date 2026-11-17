@@ -34,20 +34,25 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
     return num.toLocaleString();
   };
 
-  const getDownloadUrl = (mediaUrl: string, filename: string): string => {
-    return `/api/download?url=${encodeURIComponent(mediaUrl)}&filename=${encodeURIComponent(filename)}`;
+  const getDownloadUrl = (kind: 'video' | 'hd' | 'music' | 'cover' | 'image', index: number = 0, filename?: string): string => {
+    const src = data.sourceUrl || `https://www.tiktok.com/@${data.author.unique_id}/video/${data.id}`;
+    const params = new URLSearchParams({ src, kind });
+    if (kind === 'image') params.set('index', String(index));
+    if (filename) params.set('filename', filename);
+    return `/api/download?${params.toString()}`;
   };
 
   const handleCopyLink = () => {
-    const url = activeQuality === 'hd' ? data.downloads.nowm_hd : data.downloads.nowm;
+    const kind = activeQuality === 'hd' ? 'hd' : 'video';
+    const url = getDownloadUrl(kind as 'video' | 'hd', 0);
     navigator.clipboard.writeText(url);
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2000);
   };
 
   const currentVideoSrc = activeQuality === 'hd' && data.downloads.nowm_hd
-    ? `/api/download?url=${encodeURIComponent(data.downloads.nowm_hd)}&inline=true`
-    : `/api/download?url=${encodeURIComponent(data.downloads.nowm)}&inline=true`;
+    ? getDownloadUrl('hd', 0, undefined) + '&inline=true'
+    : getDownloadUrl('video', 0, undefined) + '&inline=true';
 
   return (
     <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 md:p-7 shadow-xl backdrop-blur-sm">
@@ -241,7 +246,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
               </div>
               {data.downloads.music && (
                 <a
-                  href={getDownloadUrl(data.downloads.music, `tiktok_${data.id}_audio.mp3`)}
+                  href={getDownloadUrl('music', 0, `tiktok_${data.id}_audio.mp3`)}
                   download
                   onClick={() => onSaveToHistory(data)}
                   className="px-3 py-1.5 text-xs font-medium text-indigo-300 hover:text-white bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/30 rounded-lg transition-colors flex items-center gap-1 shrink-0"
@@ -259,7 +264,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
               <>
                 {/* Primary: Standard No-Watermark MP4 */}
                 <a
-                  href={getDownloadUrl(data.downloads.nowm, `tiktok_${data.id}_nowatermark.mp4`)}
+                  href={getDownloadUrl('video', 0, `tiktok_${data.id}_nowatermark.mp4`)}
                   download
                   onClick={() => onSaveToHistory(data)}
                   className="w-full py-3.5 px-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 active:scale-[0.99] transition-all cursor-pointer"
@@ -271,7 +276,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
                 {/* Secondary: HD No-Watermark MP4 if available */}
                 {data.downloads.nowm_hd && (
                   <a
-                    href={getDownloadUrl(data.downloads.nowm_hd, `tiktok_${data.id}_hd_nowatermark.mp4`)}
+                    href={getDownloadUrl('hd', 0, `tiktok_${data.id}_hd_nowatermark.mp4`)}
                     download
                     onClick={() => onSaveToHistory(data)}
                     className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 text-white font-medium rounded-xl text-sm flex items-center justify-center gap-2 active:scale-[0.99] transition-all cursor-pointer"
@@ -285,7 +290,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
               /* Photo Slideshow Download Actions */
               <div className="flex flex-col gap-2">
                 <a
-                  href={getDownloadUrl(data.images[currentSlideIndex] || data.cover, `tiktok_${data.id}_slide_${currentSlideIndex + 1}.jpg`)}
+                  href={getDownloadUrl('image', currentSlideIndex, `tiktok_${data.id}_slide_${currentSlideIndex + 1}.jpg`)}
                   download
                   onClick={() => onSaveToHistory(data)}
                   className="w-full py-3.5 px-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 active:scale-[0.99] transition-all cursor-pointer"
@@ -300,7 +305,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
             <div className="grid grid-cols-2 gap-2 mt-1">
               {data.cover && (
                 <a
-                  href={getDownloadUrl(data.cover, `tiktok_${data.id}_cover.jpg`)}
+                  href={getDownloadUrl('cover', 0, `tiktok_${data.id}_cover.jpg`)}
                   download
                   className="py-2.5 px-3 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                 >

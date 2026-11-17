@@ -77,9 +77,9 @@ export const HistoryList: React.FC<HistoryListProps> = ({
 
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/80">
                 <a
-                  href={`/api/download?url=${encodeURIComponent(
-                    item.downloadUrl
-                  )}&filename=tiktok_${item.id}_nowm.mp4`}
+                  href={`/api/download?src=${encodeURIComponent(
+                    item.sourceUrl || `https://www.tiktok.com/@${item.authorHandle}/video/${item.id}`
+                  )}&kind=video&filename=tiktok_${item.id}_nowm.mp4`}
                   download
                   className="px-2.5 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 rounded-lg text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
                 >

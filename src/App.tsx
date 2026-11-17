@@ -51,7 +51,8 @@ export default function App() {
           authorName: data.author.nickname,
           authorHandle: data.author.unique_id,
           cover: data.cover,
-          downloadUrl: data.downloads.nowm,
+          downloadUrl: data.downloads.nowm, // Legacy fallback
+          sourceUrl: data.sourceUrl || `https://www.tiktok.com/@${data.author.unique_id}/video/${data.id}`,
           timestamp: Date.now(),
           isVideo: data.isVideo
         },
