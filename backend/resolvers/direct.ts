@@ -27,6 +27,16 @@ interface TikTokItemStruct {
     duration: number;
     width: number;
     height: number;
+    bitrateInfo?: Array<{
+      GearName?: string;
+      Bitrate?: number;
+      PlayAddr?: {
+        UrlList?: string[];
+        Width?: number;
+        Height?: number;
+        DataSize?: string;
+      };
+    }>;
   };
   imagePost?: {
     images: Array<{
@@ -161,27 +171,40 @@ function buildTikTokVideoData(item: TikTokItemStruct, sourceUrl: string, cookies
     }
   }
 
-  // Video URLs - prefer downloadAddr (no watermark), fallback to playAddr
+  // TikTok's downloadAddr is the WATERMARKED download; playAddr and bitrateInfo are the
+  // clean playback streams. Prefer the clean streams for no-watermark output.
   let nowm = '';
   let nowm_hd = '';
   let watermark = '';
 
-  if (item.video) {
-    if (item.video.downloadAddr && validateMediaUrl(item.video.downloadAddr)) {
-      nowm = cleanMediaUrl(item.video.downloadAddr);
-      nowm_hd = nowm; // downloadAddr is typically HD no-watermark
-    } else if (item.video.playAddr && validateMediaUrl(item.video.playAddr)) {
-      // playAddr might have watermark; try to strip playwm -> play
-      const playAddr = cleanMediaUrl(item.video.playAddr);
-      nowm = playAddr.replace('/playwm/', '/play/');
-      nowm_hd = nowm;
-      watermark = playAddr;
-    }
-    // Cover from video
-    if (item.video.cover && validateMediaUrl(item.video.cover)) {
-      // Will be used as cover
+  // Best clean adaptive playback URL (highest bitrate wins).
+  let bestAdaptive = '';
+  let bestScore = -1;
+  const bitrateInfo = Array.isArray(item.video?.bitrateInfo) ? item.video!.bitrateInfo! : [];
+  for (const b of bitrateInfo) {
+    const list = b?.PlayAddr?.UrlList;
+    const url = Array.isArray(list) ? list.find((u) => typeof u === 'string' && validateMediaUrl(u)) : undefined;
+    if (!url) continue;
+    const score = Number(b?.Bitrate || 0) || Number(b?.PlayAddr?.Width || 0) * Number(b?.PlayAddr?.Height || 0) || 0;
+    if (score > bestScore) {
+      bestScore = score;
+      bestAdaptive = cleanMediaUrl(url);
     }
   }
+
+  const playAddr =
+    item.video?.playAddr && validateMediaUrl(item.video.playAddr) ? cleanMediaUrl(item.video.playAddr) : '';
+  const downloadAddr =
+    item.video?.downloadAddr && validateMediaUrl(item.video.downloadAddr)
+      ? cleanMediaUrl(item.video.downloadAddr)
+      : '';
+
+  // Clean default: playAddr, else best adaptive, else (last resort) downloadAddr.
+  nowm = playAddr || bestAdaptive || downloadAddr;
+  // Clean HD: best adaptive, else playAddr.
+  nowm_hd = bestAdaptive || playAddr || nowm;
+  // Watermarked URL kept for reference only.
+  watermark = downloadAddr && downloadAddr !== nowm ? downloadAddr : '';
 
   // Music
   let musicUrl = '';
