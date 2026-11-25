@@ -8,5 +8,15 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: 3000
+      - key: COBALT_API_URL
+        sync: false
+
+  - type: web
+    name: cobalt
+    runtime: docker
+    plan: free
+    dockerfilePath: ./cobalt/Dockerfile
+    dockerContext: ./cobalt
+    envVars:
+      - key: COBALT_API_URL
+        sync: false
