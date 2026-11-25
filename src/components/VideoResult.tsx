@@ -16,7 +16,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import type { TikTokVideoData } from '../types';
-import { hasExtension, onExtensionReady, isTiktokMediaUrl, downloadViaExtension } from '../lib/extension';
+import { hasExtension, onExtensionReady, isTiktokMediaUrl } from '../lib/extension';
 
 interface VideoResultProps {
   data: TikTokVideoData;
@@ -46,18 +46,16 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
 
   const isTiktok = isTiktokMediaUrl(data.downloads.nowm);
 
-  // For TikTok, the server cannot fetch the video (datacenter IP blocked), so if
-  // the extension is installed we delegate the download to it (runs on the user's
-  // own IP). Otherwise the <a> falls through to /api/download as a fallback.
-  const handleDownloadClick = (e: React.MouseEvent<HTMLAnchorElement>, mediaUrl: string) => {
+  // For TikTok, the server cannot fetch the video (datacenter IP blocked). Open the
+  // video page in a new tab; the extension's on-page button (or ?tdl=1 auto-download)
+  // saves it from the user's own IP. Other platforms use the normal <a> download.
+  const handleDownloadClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     onSaveToHistory(data);
-    if (isTiktok && extInstalled) {
+    if (isTiktok) {
       e.preventDefault();
-      void downloadViaExtension(mediaUrl).then((r) => {
-        if (!r.ok) {
-          window.alert(`Download failed: ${r.error || 'unknown error'}`);
-        }
-      });
+      const handle = data.author.unique_id || '';
+      const pageUrl = `https://www.tiktok.com/@${handle}/video/${data.id}`;
+      window.open(extInstalled ? `${pageUrl}?tdl=1` : pageUrl, '_blank');
     }
   };
 
@@ -298,7 +296,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
                 <a
                   href={getDownloadUrl(data.downloads.nowm, `tiktok_${data.id}_nowatermark.mp4`)}
                   download
-                  onClick={(e) => handleDownloadClick(e, data.downloads.nowm)}
+                  onClick={(e) => handleDownloadClick(e)}
                   className="w-full py-3.5 px-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 active:scale-[0.99] transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
@@ -310,7 +308,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
                   <a
                     href={getDownloadUrl(data.downloads.nowm_hd, `tiktok_${data.id}_hd_nowatermark.mp4`)}
                     download
-                    onClick={(e) => handleDownloadClick(e, data.downloads.nowm_hd)}
+                    onClick={(e) => handleDownloadClick(e)}
                     className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 text-white font-medium rounded-xl text-sm flex items-center justify-center gap-2 active:scale-[0.99] transition-all cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4 text-amber-400" />

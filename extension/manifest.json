@@ -1,23 +1,21 @@
 {
   "manifest_version": 3,
   "name": "TikDownloader Helper",
-  "version": "1.0.0",
-  "description": "Download TikTok videos without watermark, using your own IP. No server proxy, no datacenter blocking.",
-  "permissions": ["downloads", "activeTab", "tabs", "scripting", "declarativeNetRequest"],
+  "version": "2.0.0",
+  "description": "Download TikTok videos without watermark, using your own IP. Adds a download button on TikTok pages.",
   "host_permissions": ["https://*.tiktok.com/*"],
-  "background": { "service_worker": "background.js" },
   "content_scripts": [
+    {
+      "matches": ["https://*.tiktok.com/*"],
+      "js": ["tiktok-page.js"],
+      "run_at": "document_idle"
+    },
     {
       "matches": ["https://tiktok-downloder-vuhs.onrender.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     }
   ],
-  "declarative_net_request": {
-    "rule_resources": [
-      { "id": "ruleset_1", "enabled": true, "path": "rules.json" }
-    ]
-  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "TikDownloader"

@@ -2,13 +2,10 @@
 
 Downloads TikTok videos **without watermark**, using **your own IP**.
 
-The extension runs entirely on your machine:
-1. It fetches the TikTok page (metadata only).
-2. It reads the no-watermark video link.
-3. It downloads the video **from your own connection**.
-
-No server proxy is involved, so datacenter IP blocking (Akamai 403) does not apply —
-your residential IP is trusted by TikTok's CDN.
+The extension adds a red **"⬇ Download (no watermark)"** button on every TikTok
+video page. It reads the no-watermark link from the page you're already viewing
+and downloads the video from your own connection — no server proxy, no
+datacenter blocking.
 
 ## Install (Chrome / Edge / Brave — 1 minute)
 
@@ -22,21 +19,17 @@ your residential IP is trusted by TikTok's CDN.
 
 ## Use
 
-1. Open a TikTok video in your browser (or copy its link).
-2. Click the **TikDownloader** extension icon.
-3. The URL auto-fills if you're on a TikTok video page; otherwise paste it.
-4. Click **Download** → choose where to save → done.
+1. Open any **public TikTok video** in your browser.
+2. Click the red **⬇ Download (no watermark)** button (bottom-right of the page).
+   - Or click the extension icon → **Download current TikTok page**.
+3. Pick a save location → done.
+
+The website's Download button also works: it opens the video page and the
+extension auto-downloads it.
 
 ## Notes
 
 - Works only for **public** TikTok videos (private / region-locked won't extract).
-- The extension briefly opens the video in a **background tab** to read the link
-  (a direct server-style fetch is blocked by TikTok), then closes it and downloads.
-- The first download may take a few seconds while the page loads.
-- To update later, replace the folder contents and click the refresh icon on
-  `chrome://extensions`.
-
-## For Firefox
-
-Firefox uses the same files but needs `background.scripts` instead of
-`background.service_worker` in `manifest.json`. Use Chrome/Edge for now.
+- The video is fetched from your own connection, so it is never blocked.
+- On the website, ignore the `v16-webapp-prime... 403` console line — that is the
+  inline preview, not the download.
