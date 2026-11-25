@@ -3,7 +3,7 @@
   "name": "TikDownloader Helper",
   "version": "1.0.0",
   "description": "Download TikTok videos without watermark, using your own IP. No server proxy, no datacenter blocking.",
-  "permissions": ["downloads", "activeTab", "tabs", "declarativeNetRequest"],
+  "permissions": ["downloads", "activeTab", "tabs", "scripting", "declarativeNetRequest"],
   "host_permissions": ["https://*.tiktok.com/*"],
   "background": { "service_worker": "background.js" },
   "content_scripts": [
@@ -11,11 +11,6 @@
       "matches": ["https://tiktok-downloder-vuhs.onrender.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
-    },
-    {
-      "matches": ["https://*.tiktok.com/*"],
-      "js": ["tiktok-page.js"],
-      "run_at": "document_idle"
     }
   ],
   "declarative_net_request": {
