@@ -1,10 +1,11 @@
 // TikDownloader Helper — background service worker.
-// Runs on the USER'S machine (residential IP). Fetches the TikTok page,
-// extracts the no-watermark link, then downloads the video from the user's IP.
-// The server is never involved in the video transfer.
-
-const UA =
-  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
+// Runs on the USER'S machine (residential IP).
+//
+// The TikTok page is loaded in a real background TAB (a normal browser
+// navigation that Akamai accepts — a service-worker fetch gets 403). A content
+// script reads the no-watermark link from the loaded DOM, then the browser's
+// download manager saves the video (it sends cookies + the tiktok referer set by
+// rules.json). The server is never involved.
 
 function decodeEscapes(s) {
   return s
@@ -23,43 +24,53 @@ function extractId(url) {
   );
 }
 
-async function extractTikTok(url) {
-  const page = await fetch(url, {
-    headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' },
+function waitForTabComplete(tabId, timeoutMs = 20000) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      chrome.tabs.onUpdated.removeListener(listener);
+      resolve();
+    };
+    const listener = (id, info) => {
+      if (id === tabId && info.status === 'complete') finish();
+    };
+    chrome.tabs.onUpdated.addListener(listener);
+    setTimeout(finish, timeoutMs);
   });
-  if (!page.ok) throw new Error('TikTok page returned HTTP ' + page.status);
-  const html = await page.text();
-
-  const playAddr = (html.match(/"playAddr":"([^"]+)"/) || [])[1];
-  const downloadAddr = (html.match(/"downloadAddr":"([^"]+)"/) || [])[1];
-  const desc = (html.match(/"desc":"([^"]+)"/) || [])[1] || 'TikTok Video';
-  const uniqueId = (html.match(/"uniqueId":"([^"]+)"/) || [])[1] || '';
-
-  if (!playAddr) {
-    throw new Error(
-      'No no-watermark URL found. The video may be private, region-locked, or a photo slideshow.'
-    );
-  }
-
-  return {
-    nowm: decodeEscapes(playAddr),
-    watermark: downloadAddr ? decodeEscapes(downloadAddr) : '',
-    title: desc,
-    author: uniqueId,
-    id: extractId(url),
-  };
 }
 
-async function downloadBlob(url, filename) {
-  // Fetch the video from the user's IP. The declarativeNetRequest rule sets the
-  // Referer to https://www.tiktok.com/ so TikTok's CDN (Akamai) accepts it.
-  const r = await fetch(url, { headers: { 'User-Agent': UA } });
-  if (!r.ok) throw new Error('Video download failed: HTTP ' + r.status);
-  const blob = await r.blob();
-  const objUrl = URL.createObjectURL(blob);
-  await chrome.downloads.download({ url: objUrl, filename, saveAs: true });
-  // Revoke later; the download has already started.
-  setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+function readPlayAddr(tabId) {
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(tabId, { type: 'READ_PLAYADDR' }, (resp) => {
+      const err = chrome.runtime.lastError;
+      if (err) reject(new Error(err.message));
+      else resolve(resp);
+    });
+  });
+}
+
+async function extractViaTab(url) {
+  // Open the video in a background tab so the page loads like a real visit.
+  const tab = await chrome.tabs.create({ url, active: false });
+  try {
+    await waitForTabComplete(tab.id);
+    const resp = await readPlayAddr(tab.id);
+    if (!resp || !resp.ok || !resp.playAddr) {
+      throw new Error(
+        'Could not read the video link. The video may be private, region-locked, or a photo slideshow.'
+      );
+    }
+    return {
+      nowm: decodeEscapes(resp.playAddr),
+      watermark: resp.downloadAddr ? decodeEscapes(resp.downloadAddr) : '',
+      title: resp.desc || 'TikTok Video',
+      id: extractId(url),
+    };
+  } finally {
+    chrome.tabs.remove(tab.id).catch(() => {});
+  }
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -68,14 +79,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   (async () => {
     try {
-      const data = await extractTikTok(url);
+      const data = await extractViaTab(url);
       const filename = `tiktok_${data.id}_nowm.mp4`;
-      await downloadBlob(data.nowm, filename);
-      sendResponse({ ok: true, title: data.title, author: data.author, filename });
+      // The download manager fetches from the user's IP with cookies + referer.
+      await chrome.downloads.download({ url: data.nowm, filename, saveAs: true });
+      sendResponse({ ok: true, title: data.title, filename });
     } catch (e) {
       sendResponse({ ok: false, error: e && e.message ? e.message : String(e) });
     }
   })();
 
-  return true; // keep the message channel open for the async response
+  return true; // keep the channel open for the async response
 });

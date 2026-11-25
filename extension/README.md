@@ -30,7 +30,9 @@ your residential IP is trusted by TikTok's CDN.
 ## Notes
 
 - Works only for **public** TikTok videos (private / region-locked won't extract).
-- The first download may take a few seconds while the video is fetched.
+- The extension briefly opens the video in a **background tab** to read the link
+  (a direct server-style fetch is blocked by TikTok), then closes it and downloads.
+- The first download may take a few seconds while the page loads.
 - To update later, replace the folder contents and click the refresh icon on
   `chrome://extensions`.
 
