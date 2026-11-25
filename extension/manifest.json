@@ -6,6 +6,13 @@
   "permissions": ["downloads", "activeTab", "declarativeNetRequest"],
   "host_permissions": ["https://*.tiktok.com/*"],
   "background": { "service_worker": "background.js" },
+  "content_scripts": [
+    {
+      "matches": ["https://tiktok-downloder-vuhs.onrender.com/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "declarative_net_request": {
     "rule_resources": [
       { "id": "ruleset_1", "enabled": true, "path": "rules.json" }

@@ -16,6 +16,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import type { TikTokVideoData } from '../types';
+import { hasExtension, isTiktokMediaUrl, downloadViaExtension } from '../lib/extension';
 
 interface VideoResultProps {
   data: TikTokVideoData;
@@ -38,6 +39,23 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
     return `/api/download?url=${encodeURIComponent(mediaUrl)}&filename=${encodeURIComponent(filename)}`;
   };
 
+  const isTiktok = isTiktokMediaUrl(data.downloads.nowm);
+
+  // For TikTok, the server cannot fetch the video (datacenter IP blocked), so if
+  // the extension is installed we delegate the download to it (runs on the user's
+  // own IP). Otherwise the <a> falls through to /api/download as a fallback.
+  const handleDownloadClick = (e: React.MouseEvent<HTMLAnchorElement>, mediaUrl: string) => {
+    onSaveToHistory(data);
+    if (isTiktok && hasExtension()) {
+      e.preventDefault();
+      void downloadViaExtension(mediaUrl).then((r) => {
+        if (!r.ok) {
+          window.alert(`Download failed: ${r.error || 'unknown error'}`);
+        }
+      });
+    }
+  };
+
   const handleCopyLink = () => {
     const url = activeQuality === 'hd' ? data.downloads.nowm_hd : data.downloads.nowm;
     navigator.clipboard.writeText(url);
@@ -51,6 +69,20 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
 
   return (
     <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 md:p-7 shadow-xl backdrop-blur-sm">
+      {isTiktok && !hasExtension() && (
+        <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          <span className="flex-1 min-w-[200px]">
+            Install the <strong>TikDownloader extension</strong> to save TikTok videos on your own IP — no watermark, no server proxy.
+          </span>
+          <a
+            href="/tikdownloader-extension.zip"
+            download
+            className="shrink-0 rounded-lg border border-amber-500/40 bg-amber-500/20 px-3 py-1.5 text-xs font-semibold text-amber-100 transition-colors hover:bg-amber-500/30"
+          >
+            Get extension
+          </a>
+        </div>
+      )}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Media Preview Column */}
         <div className="lg:col-span-5 flex flex-col items-center">
@@ -261,7 +293,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
                 <a
                   href={getDownloadUrl(data.downloads.nowm, `tiktok_${data.id}_nowatermark.mp4`)}
                   download
-                  onClick={() => onSaveToHistory(data)}
+                  onClick={(e) => handleDownloadClick(e, data.downloads.nowm)}
                   className="w-full py-3.5 px-4 bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-600 hover:to-pink-600 text-white font-semibold rounded-xl text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/20 active:scale-[0.99] transition-all cursor-pointer"
                 >
                   <Download className="w-4 h-4" />
@@ -273,7 +305,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
                   <a
                     href={getDownloadUrl(data.downloads.nowm_hd, `tiktok_${data.id}_hd_nowatermark.mp4`)}
                     download
-                    onClick={() => onSaveToHistory(data)}
+                    onClick={(e) => handleDownloadClick(e, data.downloads.nowm_hd)}
                     className="w-full py-3 px-4 bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-slate-600 text-white font-medium rounded-xl text-sm flex items-center justify-center gap-2 active:scale-[0.99] transition-all cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4 text-amber-400" />
