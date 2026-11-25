@@ -358,8 +358,23 @@ async function extractCobalt(url: string, env: Record<string, string | undefined
   if (!r.ok) throw new Error(`Cobalt returned HTTP ${r.status}`);
 
   const j = await r.json() as any;
-  if (j.status !== 'success' || !j.url) {
-    throw new Error(j.text || 'Cobalt could not extract this video');
+
+  // Cobalt v10 statuses: tunnel | redirect | local-processing | picker | error
+  if (j.status === 'error') {
+    throw new Error(j.error?.code || 'Cobalt could not extract this video');
+  }
+
+  let downloadUrl = '';
+  if (j.status === 'tunnel' || j.status === 'redirect') {
+    downloadUrl = j.url;
+  } else if (j.status === 'local-processing') {
+    downloadUrl = j.tunnel?.[0] || '';
+  } else if (j.status === 'picker') {
+    downloadUrl = j.picker?.[0]?.url || '';
+  }
+
+  if (!downloadUrl) {
+    throw new Error('Cobalt returned no download URL');
   }
 
   return {
@@ -369,7 +384,7 @@ async function extractCobalt(url: string, env: Record<string, string | undefined
     author: { id: '', unique_id: 'unknown', nickname: 'Cobalt', avatar: '' },
     stats: { plays: 0, likes: 0, comments: 0, shares: 0, downloads: 0 },
     music: { id: '', title: 'Original Sound', author: '', url: '' },
-    downloads: { nowm: j.url, nowm_hd: j.url, watermark: '', music: '' },
+    downloads: { nowm: downloadUrl, nowm_hd: downloadUrl, watermark: '', music: '' },
     images: [], isVideo: true,
   };
 }
