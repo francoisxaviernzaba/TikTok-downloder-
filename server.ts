@@ -131,6 +131,15 @@ app.get('/api/download', async (req: Request, res: Response) => {
       return;
     }
 
+    // Cobalt tunnel URLs are already signed and publicly reachable — redirect the
+    // browser straight to them instead of proxying. This avoids a needless hop and
+    // the proxy choking on Cobalt's chunked/streaming responses (HTTP 500).
+    const cobaltBase = process.env.COBALT_API_URL?.replace(/\/$/, '');
+    if (cobaltBase && mediaUrl.startsWith(cobaltBase)) {
+      res.redirect(302, mediaUrl);
+      return;
+    }
+
     const upstream = await fetch(mediaUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
