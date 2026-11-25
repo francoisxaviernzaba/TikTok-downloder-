@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Download,
   Music,
@@ -16,7 +16,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import type { TikTokVideoData } from '../types';
-import { hasExtension, isTiktokMediaUrl, downloadViaExtension } from '../lib/extension';
+import { hasExtension, onExtensionReady, isTiktokMediaUrl, downloadViaExtension } from '../lib/extension';
 
 interface VideoResultProps {
   data: TikTokVideoData;
@@ -27,6 +27,11 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
   const [activeQuality, setActiveQuality] = useState<'sd' | 'hd'>('sd');
   const [copiedLink, setCopiedLink] = useState(false);
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+  const [extInstalled, setExtInstalled] = useState(hasExtension());
+
+  useEffect(() => {
+    onExtensionReady(() => setExtInstalled(true));
+  }, []);
 
   const formatNumber = (num: number): string => {
     if (!num) return '0';
@@ -46,7 +51,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
   // own IP). Otherwise the <a> falls through to /api/download as a fallback.
   const handleDownloadClick = (e: React.MouseEvent<HTMLAnchorElement>, mediaUrl: string) => {
     onSaveToHistory(data);
-    if (isTiktok && hasExtension()) {
+    if (isTiktok && extInstalled) {
       e.preventDefault();
       void downloadViaExtension(mediaUrl).then((r) => {
         if (!r.ok) {
@@ -69,7 +74,7 @@ export const VideoResult: React.FC<VideoResultProps> = ({ data, onSaveToHistory 
 
   return (
     <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 md:p-7 shadow-xl backdrop-blur-sm">
-      {isTiktok && !hasExtension() && (
+      {isTiktok && !extInstalled && (
         <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
           <span className="flex-1 min-w-[200px]">
             Install the <strong>TikDownloader extension</strong> to save TikTok videos on your own IP — no watermark, no server proxy.

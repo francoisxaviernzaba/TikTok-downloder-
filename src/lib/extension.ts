@@ -4,6 +4,10 @@
  * The extension runs on the user's own machine (residential IP). For TikTok,
  * the server cannot fetch the video (datacenter IPs are blocked by TikTok's CDN),
  * so we delegate the download to the extension, which fetches from the user's IP.
+ *
+ * Content scripts run in an isolated JS world, so we detect the extension via
+ * window.postMessage (which crosses the isolated/main world boundary), not by
+ * reading a window property.
  */
 
 export interface ExtensionResult {
@@ -12,9 +16,38 @@ export interface ExtensionResult {
   filename?: string;
 }
 
-/** True if the extension's content script is present on this page. */
+let installed = false;
+const readyCallbacks: Array<() => void> = [];
+
+function markInstalled(): void {
+  if (installed) return;
+  installed = true;
+  window.dispatchEvent(new Event('tikdownloader-ext-ready'));
+  readyCallbacks.splice(0).forEach((cb) => cb());
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('message', (event) => {
+    if (event.source !== window) return;
+    const d = event.data;
+    if (d && d.type === 'TIKDOWNLOADER_EXT_HELLO') markInstalled();
+  });
+  // Ping the content script in case its initial hello fired before we were listening.
+  window.postMessage({ type: 'TIKDOWNLOADER_PING' }, '*');
+}
+
+/** True if the extension's content script has announced itself on this page. */
 export function hasExtension(): boolean {
-  return typeof window !== 'undefined' && (window as unknown as { __TIKDOWNLOADER_EXT__?: boolean }).__TIKDOWNLOADER_EXT__ === true;
+  return installed;
+}
+
+/** Run cb once the extension is detected (immediately if already detected). */
+export function onExtensionReady(cb: () => void): void {
+  if (installed) {
+    cb();
+    return;
+  }
+  readyCallbacks.push(cb);
 }
 
 /** True if a media URL points at a TikTok CDN host. */
