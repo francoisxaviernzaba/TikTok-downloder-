@@ -1,11 +1,15 @@
 // TikDownloader Helper — background service worker.
 // Runs on the USER'S machine (residential IP).
 //
-// The TikTok page is loaded in a real background TAB (a normal browser
-// navigation that Akamai accepts — a service-worker fetch gets 403). A content
-// script reads the no-watermark link from the loaded DOM, then the browser's
-// download manager saves the video (it sends cookies + the tiktok referer set by
-// rules.json). The server is never involved.
+// The TikTok page is loaded in a real background TAB (a normal navigation that
+// Akamai accepts — a service-worker fetch of the page gets 403). A content
+// script reads the no-watermark link from the loaded DOM. The video is then
+// fetched here with credentials:'include' (sends the user's tiktok cookies) and
+// the tiktok referer (set by rules.json), and saved as a blob. The server is
+// never involved.
+
+const UA =
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36';
 
 function decodeEscapes(s) {
   return s
@@ -52,11 +56,15 @@ function readPlayAddr(tabId) {
 }
 
 async function extractViaTab(url) {
-  // Open the video in a background tab so the page loads like a real visit.
   const tab = await chrome.tabs.create({ url, active: false });
   try {
     await waitForTabComplete(tab.id);
-    const resp = await readPlayAddr(tab.id);
+    // The content script retries internally, but ask once more after a beat.
+    let resp = await readPlayAddr(tab.id);
+    if (!resp || !resp.ok) {
+      await new Promise((r) => setTimeout(r, 1500));
+      resp = await readPlayAddr(tab.id);
+    }
     if (!resp || !resp.ok || !resp.playAddr) {
       throw new Error(
         'Could not read the video link. The video may be private, region-locked, or a photo slideshow.'
@@ -73,6 +81,19 @@ async function extractViaTab(url) {
   }
 }
 
+async function downloadVideo(url, filename) {
+  // Fetch with cookies (credentials:'include') + tiktok referer (rules.json).
+  const r = await fetch(url, {
+    headers: { 'User-Agent': UA },
+    credentials: 'include',
+  });
+  if (!r.ok) throw new Error('Video download blocked: HTTP ' + r.status);
+  const blob = await r.blob();
+  const objUrl = URL.createObjectURL(blob);
+  await chrome.downloads.download({ url: objUrl, filename, saveAs: true });
+  setTimeout(() => URL.revokeObjectURL(objUrl), 60_000);
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (!msg || msg.type !== 'EXTRACT') return false;
   const url = msg.url;
@@ -81,13 +102,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     try {
       const data = await extractViaTab(url);
       const filename = `tiktok_${data.id}_nowm.mp4`;
-      // The download manager fetches from the user's IP with cookies + referer.
-      await chrome.downloads.download({ url: data.nowm, filename, saveAs: true });
+      await downloadVideo(data.nowm, filename);
       sendResponse({ ok: true, title: data.title, filename });
     } catch (e) {
       sendResponse({ ok: false, error: e && e.message ? e.message : String(e) });
     }
   })();
 
-  return true; // keep the channel open for the async response
+  return true;
 });
