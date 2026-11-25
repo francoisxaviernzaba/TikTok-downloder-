@@ -12,10 +12,12 @@ your residential IP is trusted by TikTok's CDN.
 
 ## Install (Chrome / Edge / Brave — 1 minute)
 
-1. Unzip this folder somewhere permanent (e.g. `Documents/TikDownloader-extension`).
+1. Unzip `tikdownloader-extension.zip` somewhere permanent (e.g. `Documents/`).
+   You will get a folder named **`TikDownloader-extension`** containing `manifest.json` and the other files.
 2. Open `chrome://extensions` (Edge: `edge://extensions`, Brave: `brave://extensions`).
 3. Turn on **Developer mode** (top-right toggle).
-4. Click **Load unpacked** and select the unzipped `extension` folder.
+4. Click **Load unpacked** and select the **`TikDownloader-extension`** folder
+   (the one that contains `manifest.json` — not the parent folder).
 5. The extension icon appears in your toolbar — pin it if you like.
 
 ## Use
