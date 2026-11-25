@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * { box-sizing: border-box; }
+      body {
+        width: 360px;
+        margin: 0;
+        font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+        background: #0f1115;
+        color: #e8eaed;
+      }
+      header {
+        padding: 14px 16px 10px;
+        border-bottom: 1px solid #1e2128;
+      }
+      h1 { font-size: 15px; margin: 0; font-weight: 700; }
+      .sub { font-size: 11px; color: #8b93a7; margin-top: 3px; }
+      main { padding: 14px 16px 16px; }
+      input {
+        width: 100%;
+        padding: 10px 11px;
+        border-radius: 8px;
+        border: 1px solid #2a2f3a;
+        background: #161a22;
+        color: #e8eaed;
+        font-size: 12px;
+        outline: none;
+      }
+      input:focus { border-color: #3b82f6; }
+      .row { display: flex; gap: 8px; margin-top: 10px; }
+      button {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .paste { background: #232834; color: #c7ccd6; }
+      .paste:hover { background: #2b313f; }
+      .go { background: #3b82f6; color: #fff; }
+      .go:hover { background: #2f6fe0; }
+      .go:disabled { opacity: 0.5; cursor: default; }
+      #status {
+        margin-top: 12px;
+        font-size: 12px;
+        line-height: 1.45;
+        min-height: 18px;
+      }
+      .ok { color: #4ade80; }
+      .err { color: #f87171; }
+      .muted { color: #8b93a7; }
+      footer {
+        padding: 10px 16px;
+        border-top: 1px solid #1e2128;
+        font-size: 10px;
+        color: #6b7280;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>TikDownloader</h1>
+      <div class="sub">No watermark · downloads on your own IP</div>
+    </header>
+    <main>
+      <input id="url" type="text" placeholder="Paste a TikTok video URL…" />
+      <div class="row">
+        <button id="paste" class="paste">Paste</button>
+        <button id="go" class="go">Download</button>
+      </div>
+      <div id="status" class="muted">Ready.</div>
+    </main>
+    <footer>Video is fetched from your own connection. Nothing is proxied through a server.</footer>
+    <script src="popup.js"></script>
+  </body>
+</html>

@@ -1,0 +1,38 @@
+# TikDownloader Helper (browser extension)
+
+Downloads TikTok videos **without watermark**, using **your own IP**.
+
+The extension runs entirely on your machine:
+1. It fetches the TikTok page (metadata only).
+2. It reads the no-watermark video link.
+3. It downloads the video **from your own connection**.
+
+No server proxy is involved, so datacenter IP blocking (Akamai 403) does not apply —
+your residential IP is trusted by TikTok's CDN.
+
+## Install (Chrome / Edge / Brave — 1 minute)
+
+1. Unzip this folder somewhere permanent (e.g. `Documents/TikDownloader-extension`).
+2. Open `chrome://extensions` (Edge: `edge://extensions`, Brave: `brave://extensions`).
+3. Turn on **Developer mode** (top-right toggle).
+4. Click **Load unpacked** and select the unzipped `extension` folder.
+5. The extension icon appears in your toolbar — pin it if you like.
+
+## Use
+
+1. Open a TikTok video in your browser (or copy its link).
+2. Click the **TikDownloader** extension icon.
+3. The URL auto-fills if you're on a TikTok video page; otherwise paste it.
+4. Click **Download** → choose where to save → done.
+
+## Notes
+
+- Works only for **public** TikTok videos (private / region-locked won't extract).
+- The first download may take a few seconds while the video is fetched.
+- To update later, replace the folder contents and click the refresh icon on
+  `chrome://extensions`.
+
+## For Firefox
+
+Firefox uses the same files but needs `background.scripts` instead of
+`background.service_worker` in `manifest.json`. Use Chrome/Edge for now.
