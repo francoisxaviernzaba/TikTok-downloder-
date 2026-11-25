@@ -65,7 +65,8 @@ export function backendForUrl(url: string): string | null {
   if (isReddit(host)) return 'reddit';
   if (isVimeo(host)) return 'vimeo';
   if (isDailymotion(host)) return 'dailymotion';
-  if (isTikTok(host) || isInstagram(host)) return 'cobalt';
+  if (isTikTok(host)) return 'tiktok';
+  if (isInstagram(host)) return 'cobalt';
   return null;
 }
 
@@ -110,6 +111,7 @@ export async function extractVideo(url: string, env: Record<string, string | und
     case 'reddit': data = await extractReddit(url); break;
     case 'vimeo': data = await extractVimeo(url); break;
     case 'dailymotion': data = await extractDailymotion(url); break;
+    case 'tiktok': data = await extractTikTok(url); break;
     case 'cobalt': data = await extractCobalt(url, env); break;
     default: throw new Error(`Unknown backend: ${backend}`);
   }
@@ -341,7 +343,63 @@ async function extractDailymotion(url: string): Promise<VideoData> {
 }
 
 // ---------------------------------------------------------------------------
-// Cobalt — TikTok, Instagram (self-hosted)
+// TikTok — read the direct no-watermark CDN link from the page HTML.
+// The backend only fetches the page (metadata). The video file itself is
+// downloaded by the user's browser from their own residential IP, because
+// TikTok's CDN (v16-webapp-prime.tiktok.com) blocks datacenter IPs (403).
+// ---------------------------------------------------------------------------
+
+function decodeEscapes(s: string): string {
+  return s
+    .replace(/\\u002F/gi, '/')
+    .replace(/\\u0026/gi, '&')
+    .replace(/\\\//g, '/')
+    .replace(/\\u003D/gi, '=')
+    .replace(/\\u003F/gi, '?');
+}
+
+async function extractTikTok(url: string): Promise<VideoData> {
+  const r = await fetch(url, {
+    headers: {
+      'User-Agent': UA,
+      Accept: 'text/html,application/xhtml+xml',
+      'Accept-Language': 'en-US,en;q=0.9',
+    },
+  });
+  if (!r.ok) throw new Error(`TikTok returned HTTP ${r.status}`);
+  const html = await r.text();
+
+  const playAddr = html.match(/"playAddr":"([^"]+)"/)?.[1];
+  const downloadAddr = html.match(/"downloadAddr":"([^"]+)"/)?.[1];
+  const cover = html.match(/"originCover":"([^"]+)"/)?.[1] || html.match(/"cover":"([^"]+)"/)?.[1];
+  const desc = html.match(/"desc":"([^"]+)"/)?.[1];
+  const uniqueId = html.match(/"uniqueId":"([^"]+)"/)?.[1];
+  const nickname = html.match(/"nickname":"([^"]+)"/)?.[1];
+
+  const nowm = playAddr ? decodeEscapes(playAddr) : '';
+  const watermark = downloadAddr ? decodeEscapes(downloadAddr) : '';
+
+  if (!nowm) {
+    throw new Error('Could not find a no-watermark video URL in the TikTok page. The video may be private, region-locked, or a photo slideshow.');
+  }
+
+  const authorName = uniqueId || nickname || 'TikTok Creator';
+
+  return {
+    id: url.match(/\/video\/(\d+)/)?.[1] || url.match(/\/photo\/(\d+)/)?.[1] || 'unknown',
+    title: desc || 'TikTok Video',
+    cover: cover ? decodeEscapes(cover) : '',
+    duration: 0,
+    author: { id: uniqueId || '', unique_id: uniqueId || 'tiktok', nickname: nickname || authorName, avatar: '' },
+    stats: { plays: 0, likes: 0, comments: 0, shares: 0, downloads: 0 },
+    music: { id: '', title: 'Original Sound', author: authorName, url: '' },
+    downloads: { nowm, nowm_hd: nowm, watermark, music: '' },
+    images: [], isVideo: true,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Cobalt — Instagram (self-hosted; TikTok now uses extractTikTok above)
 // ---------------------------------------------------------------------------
 
 async function extractCobalt(url: string, env: Record<string, string | undefined>): Promise<VideoData> {

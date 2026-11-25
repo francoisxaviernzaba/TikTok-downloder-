@@ -135,7 +135,12 @@ app.get('/api/download', async (req: Request, res: Response) => {
     // browser straight to them instead of proxying. This avoids a needless hop and
     // the proxy choking on Cobalt's chunked/streaming responses (HTTP 500).
     const cobaltBase = process.env.COBALT_API_URL?.replace(/\/$/, '');
-    if (cobaltBase && mediaUrl.startsWith(cobaltBase)) {
+    const isCobalt = !!cobaltBase && mediaUrl.startsWith(cobaltBase);
+    // TikTok's CDN (v16-webapp-prime.tiktok.com) blocks datacenter IPs with 403,
+    // so the user's browser must fetch the file from its own residential IP.
+    // Redirect instead of proxying — proxying from Render would 403.
+    const isTiktokCdn = /^https?:\/\/[^/]*(tiktok\.com|tiktokcdn\.com|tiktokv\.com)\//i.test(mediaUrl);
+    if (isCobalt || isTiktokCdn) {
       res.redirect(302, mediaUrl);
       return;
     }
